@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# 로그
+*.log
+sync_b4_poweroff.log
+
+# OS / 에디터
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
