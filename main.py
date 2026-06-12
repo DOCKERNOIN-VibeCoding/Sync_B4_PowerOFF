@@ -49,9 +49,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # 일부 콘솔(cp949 등)에서 인코딩 불가 문자로 죽지 않도록 방어
+    # 일부 콘솔(cp949 등)에서 인코딩 불가 문자로 죽지 않도록 방어하고,
+    # 상태가 실시간으로 보이도록 줄 단위 버퍼링을 켠다(파이프/리다이렉트 포함).
     try:
-        sys.stdout.reconfigure(errors="replace")
+        sys.stdout.reconfigure(errors="replace", line_buffering=True)
     except (AttributeError, ValueError):
         pass
 

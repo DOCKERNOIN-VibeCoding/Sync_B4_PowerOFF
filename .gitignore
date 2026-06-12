@@ -5,6 +5,11 @@ __pycache__/
 venv/
 env/
 
+# PyInstaller 빌드 산출물
+build/
+dist/
+*.spec
+
 # 로그
 *.log
 sync_b4_poweroff.log
