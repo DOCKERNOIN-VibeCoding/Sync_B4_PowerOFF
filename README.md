@@ -108,7 +108,7 @@ WATCHED_SERVICES = {
 | `main.py` | 진입점 · 전체 흐름 제어 |
 | `monitor.py` | I/O 샘플링 및 동기화 완료 판정 |
 | `detectors.py` | 감시 대상 프로세스 탐지 |
-| `ui.py` | 콘솔 상태 표시 · 카운트다운 창 |
+| `ui.py` | 감시 진행·종료 카운트다운 팝업 창(콘솔 없음) |
 | `power.py` | PC 종료/취소 명령 |
 | `config.py` | 설정값 |
 

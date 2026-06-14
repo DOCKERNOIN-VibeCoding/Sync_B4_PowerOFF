@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-import time
 
 import config
 import power
@@ -24,13 +23,11 @@ from monitor import SyncMonitor
 
 
 def setup_logging() -> logging.Logger:
+    # 로그 파일을 남기지 않는다. 진행 상황은 팝업 UI로만 보여준다.
+    # (log.info 호출은 그대로 두되, 출력 핸들러는 NullHandler로 흘려보낸다.)
     logger = logging.getLogger("sync_b4_poweroff")
     logger.setLevel(logging.INFO)
-    fmt = logging.Formatter("%(asctime)s  %(message)s", datefmt="%H:%M:%S")
-
-    fh = logging.FileHandler(config.LOG_FILE, encoding="utf-8")
-    fh.setFormatter(fmt)
-    logger.addHandler(fh)
+    logger.addHandler(logging.NullHandler())
     return logger
 
 
@@ -49,66 +46,31 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # 일부 콘솔(cp949 등)에서 인코딩 불가 문자로 죽지 않도록 방어하고,
-    # 상태가 실시간으로 보이도록 줄 단위 버퍼링을 켠다(파이프/리다이렉트 포함).
-    try:
-        sys.stdout.reconfigure(errors="replace", line_buffering=True)
-    except (AttributeError, ValueError):
-        pass
-
     log = setup_logging()
-
-    print("=" * 56)
-    print("  Sync_B4_PowerOFF — 동기화 완료 후 자동 종료")
-    if args.dry_run:
-        print("  [DRY-RUN] 실제 종료는 하지 않습니다.")
-    print("=" * 56)
     log.info("시작 (dry_run=%s)", args.dry_run)
 
-    # 시작 시점 서비스 상태 안내
+    # 시작 시점 서비스 상태 기록(핸들러가 없으므로 실제 출력은 없음).
     services = discover_services(config.WATCHED_SERVICES)
     for name, svc in services.items():
         state = f"실행중 (PID {len(svc.procs)}개)" if svc.running else "미실행"
-        print(f"  - {name}: {state}")
+        log.info("  - %s: %s", name, state)
     if not any(s.running for s in services.values()):
-        print("  ! 감시 대상이 하나도 실행 중이 아닙니다. 안정화 후 그대로 종료합니다.")
-    print(f"\n  {config.SAMPLE_INTERVAL:.0f}초 간격으로 감시합니다. (Ctrl+C 로 중단)\n")
+        log.info("  ! 감시 대상이 하나도 실행 중이 아닙니다. 안정화 후 그대로 종료합니다.")
 
+    # 감시와 종료 카운트다운을 작은 팝업 창에서 모두 처리한다.
     monitor = SyncMonitor()
+    app = ui.CountdownApp(monitor, args.countdown, args.dry_run, log)
+    choice = app.run()
 
-    try:
-        while True:
-            status = monitor.tick()
-            ui.render_status(status)
-            log.info(
-                "idle=%.0fs net=%.0fB/s overall_idle=%s",
-                status.idle_seconds,
-                status.net_rate,
-                status.overall_idle,
-            )
-            if status.synced:
-                print("\n  [완료] 모든 동기화가 완료되었습니다.\n")
-                log.info("동기화 완료 판정")
-                break
-            time.sleep(config.SAMPLE_INTERVAL)
-    except KeyboardInterrupt:
-        print("\n사용자에 의해 중단되었습니다.")
-        log.info("사용자 중단(KeyboardInterrupt)")
-        return 0
-
-    # 카운트다운 다이얼로그
-    choice = ui.countdown_dialog(args.countdown)
     if choice == "cancel":
-        print("종료가 취소되었습니다. 프로그램을 종료합니다.")
-        log.info("사용자가 종료 취소")
+        log.info("사용자가 종료를 취소/중단")
         return 0
 
-    log.info("종료 실행 (choice=%s)", choice)
+    log.info("동기화 완료 판정 — 종료 실행 (choice=%s)", choice)
     if args.dry_run:
-        print("[DRY-RUN] 실제로는 여기서 PC가 종료됩니다.")
+        log.info("[DRY-RUN] 실제로는 여기서 PC가 종료됩니다.")
         return 0
 
-    print("PC를 종료합니다...")
     power.shutdown()
     return 0
 

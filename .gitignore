@@ -10,9 +10,8 @@ build/
 dist/
 *.spec
 
-# 로그
+# 로그 (현재는 파일 로그를 남기지 않음 / 만일을 위해 무시)
 *.log
-sync_b4_poweroff.log
 
 # OS / 에디터
 .vscode/
