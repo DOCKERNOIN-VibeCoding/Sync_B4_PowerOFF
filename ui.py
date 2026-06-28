@@ -9,10 +9,18 @@
 from __future__ import annotations
 
 import logging
+import os
+import sys
 import time
 
 import config
 from monitor import MonitorStatus, SyncMonitor
+
+
+def _resource_path(name: str) -> str:
+    """개발 실행과 PyInstaller 번들 모두에서 리소스 절대경로를 돌려준다."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, name)
 
 # 팝업 색상 팔레트 (다크 카드)
 _BG = "#1e1e2e"
@@ -101,6 +109,10 @@ class CountdownApp:
         root = tk.Tk()
         self._root = root
         root.title("Sync_B4_PowerOFF")
+        try:
+            root.iconbitmap(_resource_path("icon.ico"))
+        except tk.TclError:
+            pass
         root.configure(bg=_BG)
         root.resizable(False, False)
         root.attributes("-topmost", True)
